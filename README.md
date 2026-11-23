@@ -16,7 +16,7 @@ Open that file in a browser. All artwork, code, and starting names are included.
 
 Publish **only the contents of `docs/`**. For GitHub Pages, choose the `main` branch and the `/docs` folder. The static site has no external scripts, analytics, or roster files.
 
-To generate a local launcher for a deployed site, pass its HTTPS base address using `--site`. The launcher carries the starting roster as ordinary text in a URL fragment. The browser reads it, saves local state, and removes the fragment from the address bar. An existing saved plan takes precedence.
+To generate a local link card for a deployed site, pass its HTTPS base address using `--site`. The card has **Open planner** and **Copy leader link** actions. The link carries the starting roster in a compressed URL fragment. The browser reads it, saves local state, and removes the fragment from the address bar. An existing saved plan takes precedence.
 
 ## Hand off the finished plan
 

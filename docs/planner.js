@@ -61,18 +61,25 @@ function persist() {
 function usable(plan) {
   return plan?.version === 1 && ["adults","children","rooms"].every(k => Array.isArray(plan[k])) && plan.assignments && typeof plan.assignments === "object";
 }
-function openPlanner() {
+async function openPlanner() {
   document.querySelectorAll("[data-icon]").forEach(el => el.innerHTML = icon(el.dataset.icon));
   try { lastSaved = localStorage.getItem(storageKey); } catch { lastSaved = null; }
   try {
     const embedded = $("starting-roster")?.textContent;
-    const incoming = new URLSearchParams(location.hash.slice(1)).get("roster");
-    const source = lastSaved || embedded || incoming;
+    const fragment = new URLSearchParams(location.hash.slice(1));
+    const packed=fragment.get("p");
+    let source = lastSaved || embedded || fragment.get("roster");
+    if(!source && packed){
+      const binary=atob(packed.replaceAll("-","+").replaceAll("_","/"));
+      const bytes=Uint8Array.from(binary,ch=>ch.charCodeAt(0));
+      const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+      source=await new Response(stream).text();
+    }
     if (!source) { $("gate").querySelector("h2").textContent = "Open your preloaded planner"; return; }
     state = JSON.parse(source);
     if (!usable(state)) throw new Error("Invalid planner");
     persist();
-    if (incoming) { try { history.replaceState(null, "", location.pathname + location.search); } catch {} }
+    if (fragment.has("roster") || packed) { try { history.replaceState(null, "", location.pathname + location.search); } catch {} }
     $("group-filter").innerHTML = '<option value="">All classes</option>' + groupNames.map(g => '<option>'+g+'</option>').join("");
     try {
       const previous = localStorage.getItem(storageKey+".class");

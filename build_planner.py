@@ -2,11 +2,12 @@
 
 import argparse
 import base64
+import gzip
 import hashlib
 import html
 import json
 from pathlib import Path
-from urllib.parse import quote, urlsplit
+from urllib.parse import urlsplit
 
 
 ROOT = Path(__file__).resolve().parent
@@ -36,11 +37,21 @@ def hosted_launcher(base_url, roster):
     target = urlsplit(base_url)
     if target.scheme != "https" or not target.hostname or target.query or target.fragment:
         raise ValueError("Supply the HTTPS base address for the hosted planner.")
-    url = html.escape(base_url + "#roster=" + quote(roster, safe=""), quote=True)
+    packed = base64.urlsafe_b64encode(gzip.compress(roster.encode("utf-8"), mtime=0)).decode("ascii").rstrip("=")
+    url = html.escape(base_url + "#p=" + packed, quote=True)
     return f'''<!doctype html><html lang="en"><meta charset="utf-8">
-<meta name="referrer" content="no-referrer"><title>Open classroom planner</title>
-<meta http-equiv="refresh" content="0;url={url}">
-<a href="{url}">Open the 2027 classroom planner</a></html>'''
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer"><title>2027 Primary · Leader link</title>
+<style>html{{background:#f1f5ec;color:#264638;font:1rem/1.5 system-ui}}main{{max-width:32rem;margin:12vh auto;padding:24px;background:white;border:1px solid #cbd7c6;border-radius:14px}}h1{{font:2.2rem Georgia,serif;margin:.2em 0}}small{{font-weight:600}}a,button{{display:inline-block;border:1px solid #45664e;border-radius:7px;padding:10px 14px;margin:4px 3px 4px 0;font:inherit;text-decoration:none;cursor:pointer;color:#264638;background:#f4f7f0}}a{{background:#285443;color:white}}textarea{{width:100%;box-sizing:border-box}}</style>
+<main><small>Spring Creek Fourth Ward · 2027</small><h1>Primary leader link</h1>
+<p>Give this link to the leaders planning classes. It opens with the starting roster. Each browser saves its own assignments.</p>
+<a id="leader" href="{url}">Open planner</a><button id="copy">Copy leader link</button>
+<p id="status" role="status"></p><textarea id="manual" hidden readonly aria-label="Preloaded leader link"></textarea></main>
+<script>document.getElementById("copy").onclick=async()=>{{
+const url=document.getElementById("leader").href,status=document.getElementById("status");
+try{{await navigator.clipboard.writeText(url);status.textContent="Leader link copied.";}}
+catch{{const field=document.getElementById("manual");field.hidden=false;field.value=url;field.focus();field.select();status.textContent="Copy the selected link.";}}
+}};</script></html>'''
 
 
 def main():
