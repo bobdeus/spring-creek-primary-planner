@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <title>2027 Classroom Planner · Spring Creek Fourth Ward Primary</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="planner.css">
+  <script src="planner.js" defer></script>
+</head>
+<body>
+  <header class="mast"><div class="mast-inner">
+    <div class="identity"><span class="crest" data-icon="mountain"></span><div><strong>Spring Creek</strong><small>Fourth Ward Primary</small></div></div>
+    <div class="actions" id="top-actions" hidden><span class="saved" id="saved">Saved on this device</span><button class="primary" id="export"><i data-icon="export"></i> Export plan</button></div>
+  </div></header>
+  <main>
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-type"><p class="eyebrow"><span class="year">2027</span> Primary planning</p><h1 id="page-title">Classroom planner</h1><p>Arrange your classes, people, and rooms for the year.</p></div>
+    </section>
+    <section id="gate" class="gate"><h2>Opening planner…</h2><p>Open the leader’s preloaded planner to see the roster.</p></section>
+    <div id="workspace" hidden>
+      <section class="totals" id="totals" aria-label="Planner totals"></section>
+      <div class="phone-layout">
+        <section class="phone-pool" aria-labelledby="phone-pool-title">
+          <h2 id="phone-pool-title">Teachers</h2>
+          <span id="phone-available"></span>
+          <button id="phone-mode" class="pool-mode" type="button">Edit list</button>
+          <label class="phone-search"><span class="sr">Find a teacher or leader</span><input type="search" id="phone-search" placeholder="Find adult"></label>
+          <p id="phone-pool-hint" class="phone-hint">Tap to assign.</p>
+          <div id="phone-adults" class="phone-adults"></div>
+          <button id="phone-new-adult" class="phone-add" type="button">+ Add adult</button>
+        </section>
+        <section class="phone-class" aria-label="Selected classroom">
+          <label class="kicker" for="phone-class-select">Classroom</label>
+          <select id="phone-class-select" aria-label="Choose classroom"></select>
+          <div id="phone-card"></div>
+        </section>
+      </div>
+      <div class="layout">
+        <section class="board" aria-labelledby="board-heading">
+          <div class="section-heading"><div><p class="kicker">Assignments</p><h2 id="board-heading">Class board</h2></div><label class="filter"><span class="sr">Filter class board</span><select id="group-filter"></select></label></div>
+          <p class="helper">Drag a name onto a class, or select an entry to edit it. Type a room number to assign it.</p>
+          <div id="cards" class="cards"></div>
+        </section>
+        <aside class="tray" aria-labelledby="tray-heading">
+          <div class="tray-heading"><div><p class="kicker">People &amp; rooms</p><h2 id="tray-heading">Directory</h2></div><button class="outline small" id="add-entry"><i data-icon="plus"></i> Add</button></div>
+          <div id="tabs" class="tabs" role="group" aria-label="Directory type"></div>
+          <label class="search"><i data-icon="search"></i><input type="search" id="search" aria-label="Search directory" placeholder="Search adults"></label>
+          <div class="tray-options"><label id="free-filter"><input id="only-free" type="checkbox" checked> Unassigned only</label><span id="available-label"></span><span id="found"></span></div>
+          <div id="entries" class="entries"></div>
+        </aside>
+      </div>
+    </div>
+  </main>
+  <datalist id="room-options"></datalist>
+  <dialog id="dialog" aria-labelledby="dialog-title"><div class="dialog-head"><h2 id="dialog-title"></h2><button class="icon-button" id="close" aria-label="Close dialog"><i data-icon="close"></i></button></div><div id="dialog-body"></div></dialog>
+  <div id="notice" role="status" aria-live="polite"></div>
+  <noscript>Enable JavaScript to view the roster and save assignments.</noscript>
+</body>
+</html>
