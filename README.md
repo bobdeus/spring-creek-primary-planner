@@ -4,7 +4,7 @@ A browser-local classroom planner for 2027. The iPhone layout pairs a tappable a
 
 ## Open a preloaded planner
 
-The private starting roster is in `private/roster.json`. Generate a portable HTML file with Python 3.9 or newer.
+The starting roster is in `private/roster.json`. Its visibility follows the GitHub repository’s visibility. Generate a portable HTML file with Python 3.9 or newer.
 
 ```powershell
 python build_planner.py "$env:USERPROFILE/Primary Planner 2027/Open Classroom Planner.html"
@@ -16,7 +16,7 @@ Open that file in a browser. All artwork, code, and starting names are included.
 
 Publish **only the contents of `docs/`**. For GitHub Pages, choose the `main` branch and the `/docs` folder. The static site has no external scripts, analytics, or roster files.
 
-To generate a local link card for a deployed site, pass its HTTPS base address using `--site`. The card has **Open planner** and **Copy leader link** actions. The link carries the starting roster in a compressed URL fragment. The browser reads it, saves local state, and removes the fragment from the address bar. An existing saved plan takes precedence.
+The ordinary URL opens a working planner with empty classes. To generate the leader link card, pass the site's HTTPS base address using `--site`. Its **Open planner** and **Copy leader link** buttons use a short key identifying the committed Git roster object. On first use, the browser retrieves that roster from GitHub. Subsequent visits reuse the saved ward plan. Each browser stores the ordinary planner and the ward planner separately. Previously shared links with an embedded roster still open the ward plan.
 
 ## Hand off the finished plan
 

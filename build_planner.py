@@ -2,7 +2,6 @@
 
 import argparse
 import base64
-import gzip
 import hashlib
 import html
 import json
@@ -33,12 +32,14 @@ def offline_page(roster):
     return page.replace("</body>", f'<script id="starting-roster" type="application/json">{data}</script>\n<script>{script}</script>\n</body>')
 
 
-def hosted_launcher(base_url, roster):
+def hosted_launcher(base_url, roster_file):
     target = urlsplit(base_url)
     if target.scheme != "https" or not target.hostname or target.query or target.fragment:
         raise ValueError("Supply the HTTPS base address for the hosted planner.")
-    packed = base64.urlsafe_b64encode(gzip.compress(roster.encode("utf-8"), mtime=0)).decode("ascii").rstrip("=")
-    url = html.escape(base_url + "#p=" + packed, quote=True)
+    content = roster_file.read_text(encoding="utf-8").encode("utf-8")
+    blob_id = hashlib.sha1(f"blob {len(content)}\0".encode("ascii") + content).digest()
+    key = base64.urlsafe_b64encode(blob_id).decode("ascii").rstrip("=")
+    url = html.escape(base_url + "#key=" + key, quote=True)
     return f'''<!doctype html><html lang="en"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer"><title>2027 Primary · Leader link</title>
@@ -62,9 +63,12 @@ def main():
     output = args.output.resolve()
     if output.is_relative_to(ROOT) or output.suffix.lower() != ".html":
         parser.error("Choose an HTML file outside the source repository.")
-    seed = json.loads((ROOT / "private" / "roster.json").read_text(encoding="utf-8"))
-    roster = json.dumps(seed, ensure_ascii=False, separators=(",", ":"))
-    page = hosted_launcher(args.site, roster) if args.site else offline_page(roster)
+    roster_file = ROOT / "private" / "roster.json"
+    if args.site:
+        page = hosted_launcher(args.site, roster_file)
+    else:
+        seed = json.loads(roster_file.read_text(encoding="utf-8"))
+        page = offline_page(json.dumps(seed, ensure_ascii=False, separators=(",", ":")))
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_bytes(page.encode("utf-8"))
 

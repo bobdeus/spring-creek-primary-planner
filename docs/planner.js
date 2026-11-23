@@ -7,7 +7,8 @@ const classes = groupNames.flatMap((group, index) => (index < 2 ? [""] : [" A", 
   name: group + section, group, family: ["nursery", "sun"][index] || (index < 5 ? "ctr" : "val")
 })));
 const className = id => classes.find(c => c.id === id)?.name || "Unassigned";
-const storageKey = "spring-creek-fourth-ward.primary-planner.2027.v1";
+const leaderStorageKey = "spring-creek-fourth-ward.primary-planner.2027.v1";
+let storageKey = leaderStorageKey;
 const types = { adults: "Adults", children: "Children", rooms: "Rooms" };
 const singular = { adults: "adult", children: "child", rooms: "room" };
 const paths = {
@@ -32,6 +33,7 @@ const byName = (type, a, b) => {
 const sorted = (type, items) => [...items].sort((a,b) => byName(type, a, b));
 let state, lastSaved, activeType = "adults", lastFocus, noticeTimer;
 let phoneClass = "sunbeams", editingPool = false, undoMove;
+let opening = 0;
 const onlyFree = { adults:true, children:false, rooms:false };
 const expanded = new Set();
 function notify(message) {
@@ -61,25 +63,64 @@ function persist() {
 function usable(plan) {
   return plan?.version === 1 && ["adults","children","rooms"].every(k => Array.isArray(plan[k])) && plan.assignments && typeof plan.assignments === "object";
 }
+function readSaved(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+async function linkedRoster(key) {
+  if (!/^[A-Za-z0-9_-]{27}$/.test(key)) return null;
+  const binary = atob(key.replaceAll("-", "+").replaceAll("_", "/"));
+  const objectId = Array.from(binary, ch => ch.charCodeAt(0).toString(16).padStart(2, "0")).join("");
+  const response = await fetch("https://api.github.com/repos/bobdeus/spring-creek-primary-planner/git/blobs/" + objectId, {
+    headers: { Accept: "application/vnd.github.raw+json" }, credentials: "omit", referrerPolicy: "no-referrer"
+  });
+  if (response.status === 404 || response.status === 422) return null;
+  if (!response.ok) throw new Error("Roster unavailable");
+  const roster = await response.json().catch(() => null);
+  return usable(roster) ? roster : null;
+}
 async function openPlanner() {
+  const request = ++opening;
+  state = null;
+  $("workspace").hidden = $("top-actions").hidden = true;
+  $("gate").hidden = false;
+  $("gate").innerHTML = "<h2>Opening planner…</h2>";
+  if ($("dialog").open) $("dialog").close();
+  $("dialog-body").replaceChildren();
+  $("search").value = $("phone-search").value = "";
+  $("notice").textContent = "";
+  undoMove = null;
+  expanded.clear();
+  phoneClass = "sunbeams";
   document.querySelectorAll("[data-icon]").forEach(el => el.innerHTML = icon(el.dataset.icon));
-  try { lastSaved = localStorage.getItem(storageKey); } catch { lastSaved = null; }
   try {
     const embedded = $("starting-roster")?.textContent;
     const fragment = new URLSearchParams(location.hash.slice(1));
+    const key = fragment.get("key");
     const packed=fragment.get("p");
-    let source = lastSaved || embedded || fragment.get("roster");
+    const knownKey = !!key && readSaved(leaderStorageKey+".verifiedKey") === key;
+    const cachedWard = knownKey ? readSaved(leaderStorageKey) : null;
+    const roster = key && !cachedWard ? await linkedRoster(key) : null;
+    const verified = !!(cachedWard || roster);
+    const targetKey = (verified || embedded || packed || fragment.get("roster")) ? leaderStorageKey : leaderStorageKey+".blank";
+    const saved = readSaved(targetKey);
+    let source = saved || embedded || fragment.get("roster");
     if(!source && packed){
       const binary=atob(packed.replaceAll("-","+").replaceAll("_","/"));
       const bytes=Uint8Array.from(binary,ch=>ch.charCodeAt(0));
       const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
       source=await new Response(stream).text();
     }
-    if (!source) { $("gate").querySelector("h2").textContent = "Open your preloaded planner"; return; }
-    state = JSON.parse(source);
+    if (request !== opening) return;
+    storageKey = targetKey;
+    lastSaved = saved;
+    state = source ? JSON.parse(source) : roster || {
+      version:1, adults:[], children:[], rooms:[{id:"nursery-room",name:"Nursery"}], assignments:{nursery:"nursery-room"}
+    };
     if (!usable(state)) throw new Error("Invalid planner");
     persist();
-    if (fragment.has("roster") || packed) { try { history.replaceState(null, "", location.pathname + location.search); } catch {} }
+    if (roster && lastSaved) {
+      try { localStorage.setItem(leaderStorageKey+".verifiedKey",key); } catch {}
+    }
     $("group-filter").innerHTML = '<option value="">All classes</option>' + groupNames.map(g => '<option>'+g+'</option>').join("");
     try {
       const previous = localStorage.getItem(storageKey+".class");
@@ -89,7 +130,9 @@ async function openPlanner() {
     $("workspace").hidden = $("top-actions").hidden = false;
     $("gate").hidden = true;
     render();
-  } catch { $("gate").innerHTML = "<h2>Couldn’t read this planner</h2><p>Open your original preloaded planner in a new browser profile to start from the roster. Any existing saved data stays on this device.</p>"; }
+  } catch {
+    if (request === opening) $("gate").innerHTML = "<h2>Couldn’t open this planner</h2><p>Check your connection and reload to try your leader link again.</p>";
+  }
 }
 function isFree(type, item) {
   return type === "rooms" ? !Object.values(state.assignments).includes(item.id) : !item.classId;
@@ -494,4 +537,5 @@ window.addEventListener("storage",e=>{
     lastSaved=e.newValue;state=next;if($("dialog").open)$("dialog").close();render();notify("Updated from another tab.");
   }catch{}
 });
+window.addEventListener("hashchange",openPlanner);
 openPlanner();
